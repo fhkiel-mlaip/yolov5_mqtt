@@ -50,23 +50,10 @@ def main(camera_name, rtsp_url, yolo_model):
         # Publish detection results to MQTT server
         publish_results(camera_name, results)
 
-        # Display the frame with bounding boxes (optional)
-        for result in results:
-            _, label, confidence, bbox = result
-            x, y, w, h = bbox
-            cv2.rectangle(frame, (int(x), int(y)), (int(x + w), int(y + h)), (0, 255, 0), 2)
-            cv2.putText(frame, f"{label} {confidence:.2f}", (int(x), int(y) - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
-        cv2.imshow(f'Object Detection - {camera_name}', frame)
-
-        # Break the loop if 'q' key is pressed
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
 
     # Release the capture object and close all windows
     cap.release()
-    cv2.destroyAllWindows()
+
 
 if __name__ == "__main__":
     # Parse command-line arguments
