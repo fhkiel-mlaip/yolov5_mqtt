@@ -9,7 +9,7 @@ WORKDIR /app
 
 # Copy the entry point script to the container
 COPY entrypoint.sh /app/entrypoint.sh
-COPY start_multiple.py /app/start_multiple.py
+COPY src /app
 
 # Make the entrypoint script executable
 RUN chmod +x /app/entrypoint.sh
