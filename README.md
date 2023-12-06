@@ -12,7 +12,7 @@ docker build -t yolov5-mqtt .
 2. Run the Docker container:
 
 ```bash
-docker run -it yolov5-mqtt
+docker run -it --gpus all --net host yolov5-mqtt
 ```
 
 # Parameters

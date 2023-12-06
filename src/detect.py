@@ -1,7 +1,7 @@
 import cv2
 import argparse
 import numpy as np
-from yolov5 import load_model, detect
+import torch
 import paho.mqtt.publish as publish
 
 # YOLOv5 model configuration
@@ -17,12 +17,26 @@ mqtt_topic_prefix = "addix_object_detection_results"
 # Provide authentication credentials for MQTT server
 auth = {'username': mqtt_username, 'password': mqtt_password}
 
+# Class names
+object_types = [
+    "SEAMARK", "CARDINAL", "OBSTACLE", "LANDING", "RIB", "MOTORBOAT", "YACHT",
+    "DINGHY", "SAILBOAT", "TALLSHIP", "SWIMMER", "ROWER", "CANOE", "SUP",
+    "WINDSURFER", "KITEBOARDER", "SKIING", "FERRY", "CRUISE", "CONTAINER",
+    "TANKER", "FISHING", "RESEARCH", "OFFSHORE", "DREDGER", "PILOT", "POLICE",
+    "MILITARY", "SUBMARINE", "TUG", "PONTOON"
+]
+
 def detect_objects(model, image, camera_id):
     # Perform object detection using YOLOv5
-    results = detect(model, image)
+    results = model(image, size=1280)
 
     # Add camera identifier to each result
-    results_with_camera_id = [(camera_id, label, confidence, bbox) for label, confidence, bbox in results]
+    results_with_camera_id  = []
+    if results.xyxy[0] is not None:
+        results_with_camera_id = [(camera_id, object_types[int(label)], confidence, xmin, ymin, xmax, ymax) for xmin, ymin, xmax, ymax, confidence, label in results.xyxy[0].cpu().numpy()]
+    
+    # Results to JSON format
+    # results.pandas().xyxy[0].to_json(orient="records")
 
     return results_with_camera_id
 
@@ -48,7 +62,12 @@ def main(camera_name, rtsp_url, yolo_model):
         results = detect_objects(yolo_model, frame, camera_name)
 
         # Publish detection results to MQTT server
-        publish_results(camera_name, results)
+        # publish_results(camera_name, results)
+        
+        # Test print detection and frame information
+        print(f"Camera: {camera_name}")
+        print(f"Detection results: {results}")
+        print(f"Frame shape: {frame.shape}")
 
 
     # Release the capture object and close all windows
@@ -63,7 +82,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Load YOLOv5 model only once
-    yolo_model = load_model(yolo_model)
+    yolo_model = torch.hub.load('ultralytics/yolov5', 'custom', path="best.pt", trust_repo=True).eval().to('cuda')
+    yolo_model.conf = 0.5
 
     # Run the main function with provided arguments
     main(args.camera_name, args.rtsp_url, yolo_model)

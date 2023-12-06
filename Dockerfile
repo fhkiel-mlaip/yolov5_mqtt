@@ -16,4 +16,4 @@ RUN chmod +x /app/entrypoint.sh
 RUN chmod +x /app/start_multiple.py
 
 # Set the entry point for the container
-ENTRYPOINT ["/app/start_multiple.sh"]
+ENTRYPOINT ["/app/entrypoint.sh"]
