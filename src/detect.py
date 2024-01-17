@@ -2,20 +2,11 @@ import cv2
 import argparse
 import numpy as np
 import torch
-import paho.mqtt.publish as publish
+import paho.mqtt.client as mqtt
 
 # YOLOv5 model configuration
 yolo_model = "best.pt"
 
-# MQTT server configuration
-mqtt_broker = "mqtt.eclipse.org"
-mqtt_port = 1883
-mqtt_username = "your_mqtt_username"
-mqtt_password = "your_mqtt_password"
-mqtt_topic_prefix = "addix_object_detection_results"
-
-# Provide authentication credentials for MQTT server
-auth = {'username': mqtt_username, 'password': mqtt_password}
 
 # Class names
 object_types = [
@@ -26,7 +17,7 @@ object_types = [
     "MILITARY", "SUBMARINE", "TUG", "PONTOON"
 ]
 
-def detect_objects(model, image, camera_id):
+def detect_objects(model, image, camera_id): 
     # Perform object detection using YOLOv5
     results = model(image, size=1280)
 
@@ -36,15 +27,14 @@ def detect_objects(model, image, camera_id):
         results_with_camera_id = [(camera_id, object_types[int(label)], confidence, xmin, ymin, xmax, ymax) for xmin, ymin, xmax, ymax, confidence, label in results.xyxy[0].cpu().numpy()]
     
     # Results to JSON format
-    # results.pandas().xyxy[0].to_json(orient="records")
+    results_json =  results.pandas().xyxy[0].to_json(orient="records")
 
-    return results_with_camera_id
+    return results_json, results_with_camera_id
 
 def publish_results(camera_id, results):
-    # Convert results to a JSON format and publish to MQTT server
-    topic = f"{mqtt_topic_prefix}/{camera_id}"
-    message = {"objects": results}
-    publish.single(topic, payload=str(message), hostname=mqtt_broker, port=mqtt_port, auth=auth)
+    # Publish to MQTT topic
+    mqtt_client.publish(f"captnfoerdeareal/wavelab/optics/addix/{camera_id}", results)  # Replace with your MQTT topic
+
 
 def main(camera_name, rtsp_url, yolo_model):
     # Open RTSP stream
@@ -59,15 +49,16 @@ def main(camera_name, rtsp_url, yolo_model):
             break
 
         # Perform object detection
-        results = detect_objects(yolo_model, frame, camera_name)
+        results_json,  results_with_camera_id = detect_objects(yolo_model, frame, camera_name)
 
         # Publish detection results to MQTT server
-        # publish_results(camera_name, results)
+        if results_with_camera_id:
+            publish_results(camera_name, results_json)
         
-        # Test print detection and frame information
-        print(f"Camera: {camera_name}")
-        print(f"Detection results: {results}")
-        print(f"Frame shape: {frame.shape}")
+            # Test print detection and frame information
+            # print(f"Camera: {camera_name}")
+            # print(f"Detection results: {results_with_camera_id}")
+            # print(f"Frame shape: {frame.shape}")
 
 
     # Release the capture object and close all windows
@@ -83,7 +74,12 @@ if __name__ == "__main__":
 
     # Load YOLOv5 model only once
     yolo_model = torch.hub.load('ultralytics/yolov5', 'custom', path="best.pt", trust_repo=True).eval().to('cuda')
-    yolo_model.conf = 0.5
+    yolo_model.conf = 0.6
+
+    # MQTT Initialization CHANGE TO YOUR SETTINGS
+    mqtt_client = mqtt.Client()
+    mqtt_client.username_pw_set("user", "password") # Replace with your MQTT username and password
+    mqtt_client.connect("192.168.237.1", 1883, 60)  # Replace with your broker address
 
     # Run the main function with provided arguments
     main(args.camera_name, args.rtsp_url, yolo_model)

@@ -6,26 +6,22 @@ Docker container for object detection with Yolov5 and broadcasting the detection
 1. Build the Docker image:
 
 ```bash
-docker build -t yolov5-mqtt .
+docker build -t yolov5mqtt .
 ```
 
 2. Run the Docker container:
 
 ```bash
-docker run -it --gpus all --net host yolov5-mqtt
+docker run -it --gpus all --net host yolov5mqtt
 ```
 
 # Parameters
 
-Change the following parameters in detect.py to suit your needs:
+Change the following parameters in detect.py line 81 to suit your needs:
 
 ```python
 # MQTT server configuration
-mqtt_broker = "mqtt.eclipse.org"
-mqtt_port = 1883
-mqtt_username = "your_mqtt_username"
-mqtt_password = "your_mqtt_password"
-mqtt_topic_prefix = "addix_object_detection_results"
+mqtt_client.username_pw_set("user", "password") 
 
 ```
 
