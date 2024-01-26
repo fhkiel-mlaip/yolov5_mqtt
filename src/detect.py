@@ -1,6 +1,5 @@
 import cv2
 import argparse
-import numpy as np
 import torch
 import paho.mqtt.client as mqtt
 
@@ -20,20 +19,22 @@ object_types = [
 def detect_objects(model, image, camera_id): 
     # Perform object detection using YOLOv5
     results = model(image, size=1280)
-
-    # Add camera identifier to each result
-    results_with_camera_id  = []
-    if results.xyxy[0] is not None:
-        results_with_camera_id = [(camera_id, object_types[int(label)], confidence, xmin, ymin, xmax, ymax) for xmin, ymin, xmax, ymax, confidence, label in results.xyxy[0].cpu().numpy()]
     
     # Results to JSON format
     results_json =  results.pandas().xyxy[0].to_json(orient="records")
 
-    return results_json, results_with_camera_id
+    return results_json
 
 def publish_results(camera_id, results):
     # Publish to MQTT topic
-    mqtt_client.publish(f"captnfoerdeareal/wavelab/optics/addix/{camera_id}", results)  # Replace with your MQTT topic
+    message_info = mqtt_client.publish(f"captnfoerdeareal/wavelab/optics/addix/{camera_id}", results)
+    
+    # Check if the message was sent successfully
+    if message_info.rc != 0:
+        print("Error while sending message")
+        # Try to reconnect to the MQTT server
+        mqtt_client.reconnect()
+        mqtt_client.publish(f"captnfoerdeareal/wavelab/optics/addix/{camera_id}", results) 
 
 
 def main(camera_name, rtsp_url, yolo_model):
@@ -49,17 +50,11 @@ def main(camera_name, rtsp_url, yolo_model):
             break
 
         # Perform object detection
-        results_json,  results_with_camera_id = detect_objects(yolo_model, frame, camera_name)
+        results_json = detect_objects(yolo_model, frame, camera_name)
 
         # Publish detection results to MQTT server
-        if results_with_camera_id:
-            publish_results(camera_name, results_json)
-        
-            # Test print detection and frame information
-            # print(f"Camera: {camera_name}")
-            # print(f"Detection results: {results_with_camera_id}")
-            # print(f"Frame shape: {frame.shape}")
-
+        publish_results(camera_name, results_json)
+    
 
     # Release the capture object and close all windows
     cap.release()
