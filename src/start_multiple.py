@@ -5,7 +5,7 @@ import sys
 import time
 
 # Define the parameters for your_script.py
-camera_names = ["Bug", "Heck", "Backboard", "Steuerboard"]
+camera_names = ["Bug", "Heck", "Backbord", "Steuerbord"]
 rtsp_urls = [
     "rtsp://192.168.237.1:5541/0554eebe-d674-46b2-b7c4-df88dac3aa2e/0",
     "rtsp://192.168.237.1:5541/54bd800f-4ebb-43ad-a3e0-cf5258c8d7cc/0",
